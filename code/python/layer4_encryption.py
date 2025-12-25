@@ -40,10 +40,10 @@ from typing import Tuple, Optional, Dict, Any
 from dataclasses import dataclass
 
 try:
-    from pqcrypto.kem.kyber1024 import (
+    from pqcrypto.kem.ml_kem_1024 import (
         generate_keypair as kem_keygen,
-        encrypt as kem_encrypt,
-        decrypt as kem_decrypt
+        encrypt as kem_encapsulate,
+        decrypt as kem_decapsulate
     )
 except ImportError:
     raise ImportError(
@@ -285,10 +285,24 @@ class HybridEncryptor:
             )
 
         try:
-            # Step 1: Generate random DEK (Data Encryption Key)
-            dek = get_random_bytes(AES_KEY_SIZE)
+            # Step 1: Use KEM to generate encapsulated shared secret
+            # KEM generates a random shared secret and encapsulates it
+            encapsulated_key, shared_secret = kem_encapsulate(recipient_public_key)
 
-            # Step 2: Encrypt plaintext with AES-256-GCM
+            # The shared secret IS our DEK (32 bytes = 256 bits for AES-256)
+            dek = shared_secret
+
+            # Verify sizes
+            if len(encapsulated_key) != ML_KEM_1024_CIPHERTEXT_SIZE:
+                raise RuntimeError(
+                    f"Unexpected encapsulated key size: {len(encapsulated_key)} bytes"
+                )
+            if len(dek) != AES_KEY_SIZE:
+                raise RuntimeError(
+                    f"Unexpected shared secret size: {len(dek)} bytes"
+                )
+
+            # Step 2: Encrypt plaintext with AES-256-GCM using the shared secret
             nonce = get_random_bytes(AES_NONCE_SIZE)
             cipher = AES.new(dek, AES.MODE_GCM, nonce=nonce)
 
@@ -298,16 +312,7 @@ class HybridEncryptor:
             ciphertext = cipher.encrypt(plaintext)
             tag = cipher.digest()
 
-            # Step 3: Encapsulate DEK with ML-KEM-1024
-            encapsulated_key, shared_secret = kem_encrypt(recipient_public_key, dek)
-
-            # Verify encapsulated key size
-            if len(encapsulated_key) != ML_KEM_1024_CIPHERTEXT_SIZE:
-                raise RuntimeError(
-                    f"Unexpected encapsulated key size: {len(encapsulated_key)} bytes"
-                )
-
-            # Step 4: Create envelope
+            # Step 3: Create envelope
             envelope = EncryptedEnvelope(
                 encapsulated_key=encapsulated_key,
                 nonce=nonce,
@@ -372,8 +377,8 @@ class HybridEncryptor:
             raise ValueError(f"Invalid tag size: {len(envelope.tag)} bytes")
 
         try:
-            # Step 1: Decapsulate DEK
-            dek = kem_decrypt(recipient_private_key, envelope.encapsulated_key)
+            # Step 1: Decapsulate to recover shared secret (which is our DEK)
+            dek = kem_decapsulate(recipient_private_key, envelope.encapsulated_key)
 
             if len(dek) != AES_KEY_SIZE:
                 raise RuntimeError(f"Invalid decapsulated key size: {len(dek)} bytes")

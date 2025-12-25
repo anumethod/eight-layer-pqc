@@ -283,8 +283,8 @@ def validate_environment() -> tuple:
     """
     try:
         # Test pqcrypto availability
-        import pqcrypto.kem.kyber1024
-        import pqcrypto.sign.dilithium5
+        import pqcrypto.kem.ml_kem_1024
+        import pqcrypto.sign.ml_dsa_87
     except ImportError as e:
         return False, f"PQCrypto library not available: {e}"
 

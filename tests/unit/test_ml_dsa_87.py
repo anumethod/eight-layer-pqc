@@ -7,7 +7,7 @@ import pytest
 
 # Try to import pqcrypto, skip tests if not available
 try:
-    from pqcrypto.sign.dilithium5 import generate_keypair, sign, verify
+    from pqcrypto.sign.ml_dsa_87 import generate_keypair, sign, verify
     PQCRYPTO_AVAILABLE = True
 except ImportError:
     PQCRYPTO_AVAILABLE = False
@@ -33,15 +33,13 @@ def test_ml_dsa_sign_verify():
     public_key, secret_key = generate_keypair()
     message = b"Eight-Layer Quantum-Hardened Architecture v2.0"
 
-    # Sign
-    signature = sign(message, secret_key)
+    # Sign (new API: sign(secret_key, message))
+    signature = sign(secret_key, message)
     assert len(signature) > 0
 
-    # Verify
-    try:
-        verify(signature, message, public_key)
-    except Exception as e:
-        pytest.fail(f"Signature verification failed: {e}")
+    # Verify (new API: verify(public_key, message, signature) returns bool)
+    result = verify(public_key, message, signature)
+    assert result is True, "Signature verification failed"
 
 
 def test_ml_dsa_tamper_detection():
@@ -50,11 +48,11 @@ def test_ml_dsa_tamper_detection():
     message = b"Original message"
     tampered = b"Tampered message"
 
-    signature = sign(message, secret_key)
+    signature = sign(secret_key, message)
 
-    # Should fail on tampered message
-    with pytest.raises(Exception):
-        verify(signature, tampered, public_key)
+    # Should return False on tampered message (new API returns bool)
+    result = verify(public_key, tampered, signature)
+    assert result is False, "Verification should fail for tampered message"
 
 
 if __name__ == "__main__":

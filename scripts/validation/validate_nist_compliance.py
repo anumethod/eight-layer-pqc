@@ -9,8 +9,12 @@ import sys
 def validate_ml_kem_compliance():
     """Validate ML-KEM-1024 (FIPS 203) compliance"""
     try:
-        from pqcrypto.kem.kyber1024 import generate_keypair
+        from pqcrypto.kem.ml_kem_1024 import generate_keypair, encrypt, decrypt
         public_key, secret_key = generate_keypair()
+        # Test encapsulation/decapsulation
+        ciphertext, shared_secret_enc = encrypt(public_key)
+        shared_secret_dec = decrypt(secret_key, ciphertext)
+        assert shared_secret_enc == shared_secret_dec, "Shared secrets don't match"
         print("ML-KEM-1024 (FIPS 203): COMPLIANT")
         return True
     except ImportError:
@@ -24,11 +28,12 @@ def validate_ml_kem_compliance():
 def validate_ml_dsa_compliance():
     """Validate ML-DSA-87 (FIPS 204) compliance"""
     try:
-        from pqcrypto.sign.dilithium5 import generate_keypair, sign, verify
+        from pqcrypto.sign.ml_dsa_87 import generate_keypair, sign, verify
         public_key, secret_key = generate_keypair()
         message = b"test"
-        signature = sign(message, secret_key)
-        verify(signature, message, public_key)
+        signature = sign(secret_key, message)
+        result = verify(public_key, message, signature)
+        assert result is True, "Signature verification failed"
         print("ML-DSA-87 (FIPS 204): COMPLIANT")
         return True
     except ImportError:

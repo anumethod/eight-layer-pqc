@@ -7,7 +7,7 @@ import pytest
 
 # Try to import pqcrypto, skip tests if not available
 try:
-    from pqcrypto.kem.kyber1024 import generate_keypair, encrypt, decrypt
+    from pqcrypto.kem.ml_kem_1024 import generate_keypair, encrypt, decrypt
     PQCRYPTO_AVAILABLE = True
 except ImportError:
     PQCRYPTO_AVAILABLE = False
@@ -36,7 +36,7 @@ def test_ml_kem_encapsulation_decapsulation():
     ciphertext, shared_secret_sender = encrypt(public_key)
 
     # Decapsulate
-    shared_secret_receiver = decrypt(ciphertext, secret_key)
+    shared_secret_receiver = decrypt(secret_key, ciphertext)
 
     # Verify shared secrets match
     assert shared_secret_sender == shared_secret_receiver

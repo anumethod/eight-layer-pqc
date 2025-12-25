@@ -40,7 +40,7 @@ from typing import Dict, List, Optional, Tuple, Any, Callable
 from statistics import mean, stdev
 
 try:
-    import pqcrypto.sign.dilithium5 as dilithium5
+    import pqcrypto.sign.ml_dsa_87 as ml_dsa_87
     PQC_AVAILABLE = True
 except ImportError:
     PQC_AVAILABLE = False
@@ -664,7 +664,7 @@ class SelfHealingEngine:
 
         # Cryptographic keys for signing
         if self.enable_signatures:
-            self.public_key, self.secret_key = dilithium5.keypair()
+            self.public_key, self.secret_key = ml_dsa_87.generate_keypair()
             self.logger.info("Generated ML-DSA-87 signing key pair")
         else:
             self.public_key, self.secret_key = None, None
@@ -808,7 +808,7 @@ class SelfHealingEngine:
         }
 
         message = json.dumps(sign_data, sort_keys=True).encode()
-        signature = dilithium5.sign(message, self.secret_key)
+        signature = ml_dsa_87.sign(self.secret_key, message)
 
         return signature
 
@@ -838,7 +838,7 @@ class SelfHealingEngine:
         message = json.dumps(sign_data, sort_keys=True).encode()
 
         try:
-            dilithium5.verify(record.signature, message, record.public_key)
+            ml_dsa_87.verify(record.public_key, message, record.signature)
             return True
         except Exception:
             return False
@@ -1266,7 +1266,7 @@ class AuditLogger:
 
         # Cryptographic keys
         if self.enable_signatures:
-            self.public_key, self.secret_key = dilithium5.keypair()
+            self.public_key, self.secret_key = ml_dsa_87.generate_keypair()
             self.logger.info("Generated ML-DSA-87 audit signing key pair")
         else:
             self.public_key, self.secret_key = None, None
@@ -1360,7 +1360,7 @@ class AuditLogger:
         }
 
         message = json.dumps(sign_data, sort_keys=True).encode()
-        signature = dilithium5.sign(message, self.secret_key)
+        signature = ml_dsa_87.sign(self.secret_key, message)
 
         return signature
 
@@ -1391,7 +1391,7 @@ class AuditLogger:
         message = json.dumps(sign_data, sort_keys=True).encode()
 
         try:
-            dilithium5.verify(entry.signature, message, entry.public_key)
+            ml_dsa_87.verify(entry.public_key, message, entry.signature)
             return True
         except Exception:
             return False

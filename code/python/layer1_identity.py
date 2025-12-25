@@ -9,8 +9,8 @@ Security Guarantees:
 - Unforgeable signatures under chosen message attack (UF-CMA)
 - Resistant to quantum attacks via Grover's and Shor's algorithms
 - Public key size: 2592 bytes
-- Signature size: ~4595 bytes
-- Private key size: 4864 bytes
+- Signature size: ~4627 bytes
+- Private key size: 4896 bytes
 
 Example Usage:
     >>> # Initialize identity verifier
@@ -37,7 +37,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 try:
-    from pqcrypto.sign.dilithium5 import (
+    from pqcrypto.sign.ml_dsa_87 import (
         generate_keypair as sign_keygen,
         sign,
         verify
@@ -128,7 +128,7 @@ class IdentityVerifier:
         Returns:
             Tuple of (public_key, private_key) as bytes
             - public_key: 2592 bytes
-            - private_key: 4864 bytes
+            - private_key: 4896 bytes
 
         Raises:
             RuntimeError: If keypair generation fails
@@ -205,10 +205,10 @@ class IdentityVerifier:
 
         Args:
             challenge: The authentication challenge to sign
-            private_key: ML-DSA-87 private key (4864 bytes)
+            private_key: ML-DSA-87 private key (4896 bytes)
 
         Returns:
-            Digital signature (~4595 bytes)
+            Digital signature (~4627 bytes)
 
         Raises:
             ValueError: If challenge is expired or private key is invalid
@@ -222,10 +222,10 @@ class IdentityVerifier:
         if challenge.is_expired():
             raise ValueError("Cannot sign expired challenge")
 
-        if len(private_key) != 4864:
+        if len(private_key) != 4896:
             raise ValueError(
                 f"Invalid private key size: {len(private_key)} bytes "
-                "(expected 4864 bytes for ML-DSA-87)"
+                "(expected 4896 bytes for ML-DSA-87)"
             )
 
         try:
@@ -247,7 +247,7 @@ class IdentityVerifier:
 
         Args:
             challenge: The authentication challenge that was signed
-            signature: Digital signature to verify (~4595 bytes)
+            signature: Digital signature to verify (~4627 bytes)
             public_key: ML-DSA-87 public key (2592 bytes)
             allow_expired: Whether to accept expired challenges (default: False)
 
@@ -273,9 +273,8 @@ class IdentityVerifier:
 
         try:
             message = challenge.to_bytes()
-            # verify() returns the message on success, raises on failure
-            verified_message = verify(public_key, signature, message)
-            return verified_message == message
+            # verify() returns True/False in the new pqcrypto API
+            return verify(public_key, message, signature)
         except Exception:
             # Any exception during verification means invalid signature
             return False
@@ -372,7 +371,7 @@ class IdentityVerifier:
             "security_level": "NIST Level 5",
             "quantum_security_bits": 256,
             "public_key_size": len(public_key),
-            "expected_signature_size": "~4595 bytes",
+            "expected_signature_size": "~4627 bytes",
             "key_fingerprint": key_hash[:16],
             "key_hash_sha3_256": key_hash
         }
